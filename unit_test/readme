@@ -1,0 +1,24 @@
+For user space
+CNX project
+
+
+mdio.c
+------------------------------------------------------------
+#define MV_MULTI_ADDRMODE 1   /* 0 - For single address mode */
+#define MV_PHY_ID 7    /* smi addr of the switch in multi address mode */
+
+readRegister(9, 3) == 0x1901 or 0x3901
+
+
+dts
+------------------------------------------------------------
+add:
+			switch{
+				compatible = "marvell,mvmdio-uio";
+				status = "okay";
+				mii-bus = <&mdio1>;
+			};
+			mdio1: mdio@72004 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};

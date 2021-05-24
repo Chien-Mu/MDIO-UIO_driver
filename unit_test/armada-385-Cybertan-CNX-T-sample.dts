@@ -1,0 +1,418 @@
+/*
+ * Device Tree file for Marvell Armada 388 evaluation board
+ * (DB-88F6820)
+ *
+ *  Copyright (C) 2014 Marvell
+ *
+ * Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License, or (at your option) any later version.
+ *
+ *     This file is distributed in the hope that it will be useful
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED , WITHOUT WARRANTY OF ANY KIND
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/dts-v1/;
+#include "armada-388.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "A38x-CyberTAN-CNX-T";
+	compatible = "marvell,a385-db", "marvell,armada388",
+		"marvell,armada385", "marvell,armada380";
+	
+	aliases {
+		/* So that mvebu u-boot can update the MAC addresses */
+		ethernet1 = &eth0;
+		ethernet2 = &eth1;
+		ethernet3 = &eth2;
+		/*ethernet4 = &eth3;
+		ethernet5 = &eth4;
+		mdio-gpio0 = &mdio0; */
+	};
+	
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x10000000>; /* 256 MB */
+	};
+
+	soc {
+		ranges = <MBUS_ID(0xf0, 0x01) 0 0xf1000000 0x100000
+			  MBUS_ID(0x01, 0x1d) 0 0xfff00000 0x100000
+			  MBUS_ID(0x09, 0x19) 0 0xf1100000 0x10000
+			  MBUS_ID(0x09, 0x15) 0 0xf1110000 0x10000
+			  MBUS_ID(0x0c, 0x04) 0 0xf1200000 0x100000>;
+
+		internal-regs {
+			
+			/* Micron-SPI_Flash */
+			spi@10600 {
+				status = "okay";
+
+				spi-flash@0 {
+					#address-cells = <1>;
+					#size-cells = <1>;
+					compatible = "n25q128a13", "jedec,spi-nor";
+					reg = <0>; /* Chip select 0 */
+					spi-max-frequency = <108000000>;
+					spi-cpha;
+				};
+			};
+
+			i2c@11000 {
+				status = "okay";
+				clock-frequency = <100000>;
+
+				pcf8574: gpio@27 {
+					compatible = "nxp,pcf8574";
+					reg = <0x27>;
+					/*interrupt-parent = <&irqpin2>; 
+					interrupts = <3 0>;
+					interrupt-controller;
+					#interrupt-cells = <2>; */
+					gpio-controller;
+					#gpio-cells = <2>;
+				};
+				
+				lm63: lm63@4c {
+					compatible = "national,lm63";
+					reg = <0x4c>;
+				};
+			};
+
+			i2c@11100 {
+				status = "okay";
+				clock-frequency = <100000>;
+
+				lm63_r: lm63_r@4c {
+					compatible = "national,lm63";
+					reg = <0x4c>;
+				};
+			};
+
+			serial@12000 {
+				status = "okay";
+			};
+/*	
+			switch{
+				compatible = "marvell,mv_switch";
+				status = "okay";
+				mii-bus = <&mdio1>;
+				phy_addr = <0x7>;
+				dev_num = <0x0>;
+				cpu_port = <0x9>;
+				multiaddr_mode = <0x1>;
+				rmu_mode = <0x0>;
+				switch_irq = <0xffffffff>;
+				port_mask = <0x1FE>;
+				connected_port_mask = <0x1FE>;
+				forced_link_port_mask = <0x200>;
+			};
+*/	
+			switch{
+				compatible = "marvell,mvmdio-uio";
+				status = "okay";
+				mii-bus = <&mdio1>;
+			};
+
+			/* Eth0: 88E6390 */
+			eth0: ethernet@70000 {
+				status = "okay";
+				phy-mode = "sgmii";
+				buffer-manager = <&bm>;
+				bm,pool-long = <0>;
+				bm,pool-short = <1>;
+				
+				fixed-link {
+					speed = <1000>;
+					full-duplex;
+				};
+			};
+
+			/* Eth1: 88E1512 */
+			ethernet@30000 {
+				status = "okay";
+				phy = <&phy1>;
+				phy-mode = "sgmii";
+				buffer-manager = <&bm>;
+				bm,pool-long = <2>;
+				bm,pool-short = <3>;
+			};
+			
+			/* Eth2: 88E1512 */
+			ethernet@34000 {
+				status = "okay";
+				phy = <&phy2>;
+				phy-mode = "sgmii";
+				buffer-manager = <&bm>;
+				bm,pool-long = <0>;
+				bm,pool-short = <1>;
+			};
+
+/*
+			eth3: ethernet@3 {
+				compatible = "cybertan,rtl8211_eth";
+				status = "okay";
+				phy = <&phy3>;
+				phy-mode = "rgmii";
+			};
+
+			eth4: ethernet@4 {
+				compatible = "cybertan,rtl8211_eth";
+				status = "okay";
+				phy = <&phy4>;
+				phy-mode = "rgmii";
+			};
+*/			
+			mdio@72004 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				phy1: ethernet-phy@1 {
+					reg = <0>;
+				};
+				
+				phy2: ethernet-phy@2 {
+					reg = <1>;
+				};
+			};
+	
+			mdio1: mdio@72004 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+/*	
+			mdio1: mdio@72004 {
+				switch0: switch0@0x7 {
+					compatible = "marvell,mv88e6xxx";
+					status = "okay";
+					reg = <0x7>;
+					//dsa,member = <0 0>;
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+						port@1 {
+							reg = <1>;
+							label = "lan1";
+							phy-handle = <&switch0phy1>;
+						};
+						port@2 {
+							reg = <2>;
+							label = "lan2";
+							phy-handle = <&switch0phy2>;
+						};
+						
+						port@3 {
+							reg = <3>;
+							label = "lan3";
+							phy-handle = <&switch0phy3>;
+						};
+						
+						port@4 {
+							reg = <4>;
+							label = "lan4";
+							phy-handle = <&switch0phy4>;
+						};
+						
+						port@5 {
+							reg = <5>;
+							label = "lan5";
+							phy-handle = <&switch0phy5>;
+						};
+						
+						port@6 {
+							reg = <6>;
+							label = "lan6";
+							phy-handle = <&switch0phy6>;
+						};
+						
+						port@7 {
+							reg = <7>;
+							label = "lan7";
+							phy-handle = <&switch0phy7>;
+						};
+						
+						port@8 {
+							reg = <8>;
+							label = "lan8";
+							phy-handle = <&switch0phy8>;
+						};
+						
+						port@9 {
+							reg = <9>;
+							label = "cpu";
+							ethernet = <&eth0>;
+						};
+					};
+
+					mdio {
+						#address-cells = <1>;
+						#size-cells = <0>;
+						switch0phy1: switch0phy1@1 {
+							reg = <0x1>;
+						};
+						switch0phy2: switch0phy2@2 {
+							reg = <0x2>;
+						};
+						switch0phy3: switch0phy3@3 {
+							reg = <0x3>;
+						};
+						switch0phy4: switch0phy4@4 {
+							reg = <0x4>;
+						};
+						switch0phy5: switch0phy5@5 {
+							reg = <0x5>;
+						};
+						switch0phy6: switch0phy6@6 {
+							reg = <0x6>;
+						};
+						switch0phy7: switch0phy7@7 {
+							reg = <0x7>;
+						};
+						switch0phy8: switch0phy8@8 {
+							reg = <0x8>;
+						};
+					};
+				};
+			};
+*/
+			bm@c8000 {
+				status = "okay";
+			};
+			
+			/* eMMC */
+			sdhci@d8000 {
+				broken-cd;
+				wp-inverted;
+				bus-width = <8>;
+				status = "okay";
+				no-1-8-v;
+			};
+
+			/* USB2: TypeA */
+			usb@58000 {
+				status = "okay";
+			};
+			
+			/* USB3: TypeA */
+			usb3@f8000 {
+				status = "okay";
+			};
+
+			crypto@90000 {
+				status = "okay";
+			};
+
+		};
+
+		bm-bppi {
+			status = "okay";
+		};
+
+		pcie-controller {
+			status = "okay";
+			/*
+			 * The two PCIe units are accessible through
+			 * standard PCIe slots on the board.
+			 */
+			pcie@1,0 {
+				/* Port 0, Lane 0 */
+				status = "okay";
+			};
+			pcie@2,0 {
+				/* Port 1, Lane 0 */
+				status = "okay";
+			};
+		};
+	};
+	leds {
+		compatible = "gpio-leds";
+		status = "okay";
+
+		led0 {
+			gpios = <&pcf8574 0 GPIO_ACTIVE_LOW>;
+			label = "led0";
+			linux,default-trigger = "timer";
+		};
+		led1 {
+			gpios = <&pcf8574 1 GPIO_ACTIVE_LOW>;
+			label = "led1";
+			linux,default-trigger = "none";
+		};
+		led2 {
+			gpios = <&pcf8574 2 GPIO_ACTIVE_LOW>;
+			label = "led2";
+			linux,default-trigger = "none";
+		};
+	};
+
+	/*
+	mdio0: mdio_gpio {
+		compatible = "virtual,mdio-gpio";
+		gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>,
+			<&gpio1 6 GPIO_ACTIVE_HIGH>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		phy3: ethernet-phy@3 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <5>;
+		};
+		
+		phy4: ethernet-phy@4 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <6>;
+		};
+	};
+	*/
+
+	/*gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&reset_button_pin>;
+		pinctrl-names = "default";
+
+		reset-button {
+			label = "Reset Button";
+			linux,code = <KEY_RESTART>;
+			gpios = <&gpio1 24 GPIO_ACTIVE_LOW>;
+		};
+	};*/
+};
